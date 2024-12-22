@@ -1,0 +1,338 @@
+<!-- 
+ FRONTEND:
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ALT-BOZBEY</title>
+    <style>
+        /* Genel stiller */
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f3f4f6;
+        }
+
+        /* Giriş ekranı stili */
+        #login-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        .login-box {
+            background-color: #ffffff;
+            width: 400px;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+
+        .login-box h2 {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .form-group label {
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus {
+            border-color: #007bff;
+        }
+
+        .btn {
+            background-color: #007bff;
+            color: white;
+            font-size: 16px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .btn:hover {
+            background-color: #0056b3;
+        }
+
+        #error-message {
+            color: #ff0000;
+            font-size: 14px;
+            margin-top: 10px;
+            display: none;
+        }
+
+        /* Drone takip sistemi stili */
+        #drone-system {
+            display: none;
+        }
+
+        header {
+            background-color: #000;
+            color: #8e8e8e;
+            padding: 15px 20px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        #date-time, #drone-location {
+            position: absolute;
+            background-color: #e0e0e0;
+            padding: 10px 20px;
+            border-radius: 10px;
+            box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        #date-time { top: 10px; right: 10px; }
+        #drone-location { bottom: 50px; right: 10px; }
+
+        #map-container {
+            display: flex;
+            height: calc(100vh - 70px);
+        }
+
+        #map {
+            flex: 1;
+            height: 100%;
+        }
+
+        #drone-feed {
+            flex: 1;
+            background-color: #000;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        footer {
+            text-align: center;
+            padding: 10px;
+            background-color: #333;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <!-- Giriş ekranı -->
+    <!---
+    <div id="login-container">
+        <div class="login-box">
+            <h2>Kullanıcı Girişi</h2>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="username">Kullanıcı Adı</label>
+                    <input type="text" id="username" placeholder="Kullanıcı adınızı girin" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Şifre</label>
+                    <input type="password" id="password" placeholder="Şifrenizi girin" required>
+                </div>
+                <button type="submit" class="btn">Giriş Yap</button>
+            </form>
+            <p id="error-message">Kullanıcı adı veya şifre hatalı!</p>
+        </div>
+    </div>
+
+    <!-- Drone takip sistemi 
+    <div id="drone-system">
+        <header>ALT-BOZBEY Takımı Drone Takip Sistemi</header>
+
+        <div id="date-time">
+            <span id="current-date-time"></span>
+        </div>
+
+        <div id="drone-location">
+            <h1>Drone Konumu</h1> 
+                Enlem: 39.942442360648506° N,
+                <br>
+                Boylam: 32.84189634831627° W
+                <br>ALT: 0M
+            </p>
+        </div>
+
+        <div id="map-container">
+            <div id="map"></div>
+            <div id="drone-feed">Drone Görüntüsü</div>
+        </div>
+
+        <footer>© ALT-BOZBEY - Emirhan Yıldız</footer>
+    </div>
+
+    <script>
+        // Kullanıcı giriş doğrulama
+        const loginForm = document.getElementById('login-form');
+        const errorMessage = document.getElementById('error-message');
+        const loginContainer = document.getElementById('login-container');
+        const droneSystem = document.getElementById('drone-system');
+
+        loginForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch('http://localhost:5000/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (response.status === 200) {
+                    loginContainer.style.display = 'none';
+                    droneSystem.style.display = 'block';
+                    initializeMap();  // Haritayı başlat
+                } else {
+                    errorMessage.textContent = data.message;
+                    errorMessage.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Giriş hatası:', error);
+                errorMessage.textContent = 'Sunucuya bağlanırken bir hata oluştu.';
+                errorMessage.style.display = 'block';
+            }
+        });
+
+        // Drone sistemini başlat
+        function initializeDroneSystem() {
+            updateDateTime();
+            setInterval(updateDateTime, 1000);
+        }
+
+        // Tarih ve saati güncelle
+        function updateDateTime() {
+            const now = new Date();
+            const dateTimeString = now.toLocaleString();
+            document.getElementById('current-date-time').textContent = dateTimeString;
+        }
+
+        // Google Maps API ile haritayı başlat
+        function initializeMap() {
+            const map = new google.maps.Map(document.getElementById("map"), {
+                center: { lat: 39.94239852005326, lng: 32.84158729045665 },  // Örneğin İstanbul
+                zoom: 10
+            });
+
+            const droneIcon = {
+                url: 'https://r.resimlink.com/iVKMSz_.png', // Buraya drone ikonunun URL'sini koyun
+                scaledSize: new google.maps.Size(40, 40), // İkon boyutunu ayarlayın
+                origin: new google.maps.Point(0, 0),
+                anchor: new google.maps.Point(20, 20), // İkonun konumunu ayarlayın
+            };
+
+            const marker = new google.maps.Marker({
+                position: { lat: 39.94239852005326, lng: 32.84158729045665 }, // Drone'un konumunu buraya yerleştirin
+                map: map,
+                title: "Drone",
+                icon: droneIcon, // İkonu burada kullanıyoruz
+            });
+        }
+    </script>
+
+    <!-- Google Maps API'yi yükle --
+    <script 
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAud07B9XM-Ges-R9bEZQ8W7-yiQokmoAc&callback=initializeMap&v=weekly" 
+        async 
+        defer>
+    </script>
+
+</body>
+</html>
+
+
+BACKEND:
+const express = require('express');
+const bodyParser = require('body-parser');
+const cors = require('cors');
+
+const app = express();
+
+// Middleware
+app.use(cors());
+app.use(bodyParser.json());
+
+// Basit bir GET endpoint
+app.get('/', (req, res) => {
+    res.send('Merhaba Dünya! Backend çalışıyor!');
+});
+
+// Sunucuyu dinle
+const PORT = 5000;
+app.listen(PORT, () => {
+    console.log(`Sunucu ${PORT} portunda çalışıyor.`);
+});
+
+// Yeni kodu buraya ekleyin
+
+// Drone verilerini saklamak için basit bir nesne (gerçek dünyada veritabanı kullanılabilir)
+let droneData = {
+    latitude: 40.7128,
+    longitude: -74.0060,
+    armStatus: 'DISARM' // Drone'un durumu
+  };
+  
+  // JSON verisini kabul etmek için middleware
+  app.use(express.json());
+  
+  // Drone konumu ve durumu GET isteği
+  app.get('/drone-status', (req, res) => {
+    res.json(droneData);
+  });
+  
+  // Drone durumunu değiştirme (ARM/DISARM) POST isteği
+  app.post('/drone-status', (req, res) => {
+    const { armStatus } = req.body;
+    if (armStatus) {
+      droneData.armStatus = armStatus;
+      res.status(200).json({ message: 'Durum güncellendi.', droneData });
+    } else {
+      res.status(400).json({ message: 'Geçersiz durum.' });
+    }
+  });
+  const users = [
+    { username: 'bozbey', password: '123' },
+    { username: 'emirhan', password: 'password123' }
+  ];
+  
+  // Kullanıcı doğrulama POST isteği
+  app.post('/login', (req, res) => {
+    const { username, password } = req.body;
+  
+    // Kullanıcı adı ve şifreyi kontrol et
+    const user = users.find(u => u.username === username && u.password === password);
+  
+    if (user) {
+      res.status(200).json({ message: 'Başarıyla giriş yapıldı!' });
+    } else {
+      res.status(401).json({ message: 'Kullanıcı adı veya şifre hatalı!' });
+    }
+  });
+  
+
